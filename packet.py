@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
-def to_bits(octet, offset, length, n_bits = 8):
+
+def to_bits(octet, offset, length, n_bits=8):
     mask = (1 << length) - 1
     return (octet >> (n_bits - offset - length)) & mask
 
 
-def to_octets(i, n_octets = 1):
+def to_octets(i, n_octets=1):
     l = []
     for x in range(n_octets):
         l.append(to_bits(i, 8 * x, 8, 8 * n_octets))
     return bytes(l)
 
 
-def to_integer(octets, n_bits = 8):
+def to_integer(octets, n_bits=8):
     l = len(octets) - 1
     i = 0
     for o in octets:
@@ -24,9 +25,12 @@ def to_integer(octets, n_bits = 8):
 class MACAddress:
     def __init__(self, octets):
         self.address = tuple(int(o) for o in octets)
+
     def __str__(self):
+
         return ":".join(hex(o)[2:].rjust(2, "0") for o in self.address)
-    def __getitem(self, i):
+
+    def __getitem__(self, i):
         return self.address[i]
 
 
@@ -58,8 +62,10 @@ class EthernetFrame:
 class IPv4Address:
     def __init__(self, octets):
         self.address = tuple(int(o) for o in octets)
+
     def __str__(self):
         return ".".join(str(o) for o in self.address)
+
     def __getitem__(self, i):
         return self.address[i]
 
@@ -156,8 +162,11 @@ class TCPPacket:
             to_octets(self.dest_port, 2) +
             to_octets(self.sequence, 4) +
             to_octets(self.ack_number, 4) +
-            to_octets((self.data_offset << 4) + (self.reserved << 1) +
-                int(self.NS)) +
+            to_octets(
+                (self.data_offset << 4) +
+                (self.reserved << 1) +
+                int(self.NS)
+            ) +
             to_octets(
                 to_integer([int(f) for f in (
                     self.CWR, self.ECE,
@@ -167,7 +176,7 @@ class TCPPacket:
                 )], 1)
             ) +
             to_octets(self.window_size, 2) +
-            to_octets(self.checksum, 2) + 
+            to_octets(self.checksum, 2) +
             to_octets(self.urgent_pointer, 2) +
             to_octets(self.options, (self.data_offset - 5) * 4) +
             bytes(self.payload)
