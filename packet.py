@@ -22,6 +22,26 @@ def to_integer(octets, n_bits=8):
     return i
 
 
+def to_integer_le(octets, n_bits=8):
+    l = 0
+    i = 0
+    for o in octets:
+        i += o << (l * n_bits)
+        l += 1
+    return i
+
+
+def checksum(octets):
+    if len(octets) % 2 == 1:
+        octets += b"\x00"
+    # s = sum(array.array("H", octets))
+    s = sum(to_integer_le(octets[i:i+2]) for i in range(0, len(octets), 2))
+    s = (s >> 16) + (s & 0xffff)
+    s += s >> 16
+    s = ~s
+    return (((s >> 8) & 0xff) | s << 8) & 0xffff
+
+
 class MACAddress:
     def __init__(self, octets):
         self.address = tuple(int(o) for o in octets)
@@ -45,10 +65,7 @@ class EthernetFrame:
         if self.ethertype != 0x0800:
             raise ValueError("non-ipv4 packet")
 
-        self.payload = IPv4Packet(octets[14:])
-
-        # self.payload = IPv4Packet(octets[14:-4])
-        # self.crc = octets[-4:]
+        self.payload = IPv4Packet(octets[14:], self)
 
     def raw(self):
         return (
@@ -71,7 +88,8 @@ class IPv4Address:
 
 
 class IPv4Packet:
-    def __init__(self, octets):
+    def __init__(self, octets, parent=None):
+        self.parent = parent
         self._raw = octets
 
         self.version = to_bits(octets[0], 0, 4)
@@ -103,9 +121,9 @@ class IPv4Packet:
 
         option_words = self.ihl - 5
         self.options = to_integer(octets[20:20 + (4 * option_words)])
-        self.payload = TCPPacket(octets[20 + (4 * option_words):])
+        self.payload = TCPPacket(octets[20 + (4 * option_words):], self)
 
-    def raw(self):
+    def raw_header(self):
         return (
             to_octets(to_integer([self.version, self.ihl], 4)) +
             to_octets((self.dscp << 2) + self.ecn) +
@@ -117,13 +135,29 @@ class IPv4Packet:
             to_octets(self.checksum, 2) +
             bytes(self.source_address.address) +
             bytes(self.dest_address.address) +
-            to_octets(self.options, (self.ihl - 5) * 4) +
-            self.payload.raw()
+            to_octets(self.options, (self.ihl - 5) * 4)
+        )
+
+    def raw(self):
+        return self.raw_header() + self.payload.raw()
+
+    def replace_checksum(self):
+        self.checksum = 0
+        self.checksum = checksum(self.raw_header())
+
+    def tcp_checksum_bytes(self):
+        return (
+            bytes(self.source_address.address) +
+            bytes(self.dest_address.address) +
+            to_octets(0) +
+            to_octets(self.protocol) +
+            to_octets(len(self.payload.raw()), 2)
         )
 
 
 class TCPPacket:
-    def __init__(self, octets):
+    def __init__(self, octets, parent=None):
+        self.parent = parent
         self._raw = octets
 
         self.source_port = to_integer(octets[0:2])
@@ -156,7 +190,7 @@ class TCPPacket:
         self.options = to_integer(octets[20:20 + (4 * option_words)])
         self.payload = octets[20 + (4 * option_words):]
 
-    def raw(self):
+    def raw_header(self):
         return (
             to_octets(self.source_port, 2) +
             to_octets(self.dest_port, 2) +
@@ -178,6 +212,38 @@ class TCPPacket:
             to_octets(self.window_size, 2) +
             to_octets(self.checksum, 2) +
             to_octets(self.urgent_pointer, 2) +
-            to_octets(self.options, (self.data_offset - 5) * 4) +
-            bytes(self.payload)
+            to_octets(self.options, (self.data_offset - 5) * 4)
         )
+
+    def raw(self):
+        return self.raw_header() + bytes(self.payload)
+
+    def replace_checksum(self):
+        self.checksum = 0
+        self.checksum = checksum(
+            self.parent.tcp_checksum_bytes() +
+            self.raw_header()
+        )
+
+    def forge_reset(self, sequence):
+        self.NS = False
+        self.CWR = False
+        self.ECE = False
+        self.URG = False
+        self.ACK = False
+        self.PSH = False
+        self.RST = True
+        self.SYN = False
+        self.FIN = False
+
+        self.sequence = sequence
+        self.ack_number = 0
+        self.window_size = 0
+        self.urgent_pointer = 0
+        self.payload = b""
+
+        self.parent.replace_checksum()
+        self.replace_checksum()
+
+
+__all__ = ["EthernetFrame", "IPv4Packet", "TCPPacket"]
