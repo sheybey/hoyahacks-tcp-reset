@@ -73,7 +73,6 @@ def attack():
 
     print("Watching for connections to interrupt. Press Ctrl-C to stop.")
 
-
     while True:
         attack_event.wait()
 
