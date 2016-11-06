@@ -41,16 +41,34 @@ def checksum(octets):
     return (((s >> 8) & 0xff) | s << 8) & 0xffff
 
 
-class MACAddress:
+class Address:
     def __init__(self, octets):
         self.address = tuple(int(o) for o in octets)
 
-    def __str__(self):
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, repr(self.address))
 
-        return ":".join(hex(o)[2:].rjust(2, "0") for o in self.address)
+    def __eq__(self, other_address):
+        return self is other_address or self.address == other_address.address
+
+    def __contains__(self, octet):
+        return octet in self.address
 
     def __getitem__(self, i):
         return self.address[i]
+
+    def __iter__(self):
+        return iter(self.address)
+
+
+class MACAddress(Address):
+    def __str__(self):
+        return ":".join(hex(o)[2:].rjust(2, "0") for o in self.address)
+
+
+class IPv4Address(Address):
+    def __str__(self):
+        return ".".join(str(o) for o in self.address)
 
 
 class EthernetFrame:
@@ -71,17 +89,6 @@ class EthernetFrame:
             to_octets(self.ethertype, 2) +
             self.payload.raw()
         )
-
-
-class IPv4Address:
-    def __init__(self, octets):
-        self.address = tuple(int(o) for o in octets)
-
-    def __str__(self):
-        return ".".join(str(o) for o in self.address)
-
-    def __getitem__(self, i):
-        return self.address[i]
 
 
 class IPv4Packet:
