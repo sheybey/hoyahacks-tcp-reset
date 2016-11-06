@@ -132,8 +132,6 @@ attack=Button(x, text="attack", command=button)
 
 attack.pack()
 
-x.mainloop()
-
 
 attack_thread = threading.Thread(target=attack, name="attack", daemon=True)
 attack_thread.start()
@@ -151,3 +149,4 @@ try:
             ))
 except KeyboardInterrupt:
     pass
+x.mainloop()
