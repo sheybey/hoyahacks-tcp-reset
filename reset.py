@@ -2,16 +2,20 @@
 import threading
 import socket
 from packet import EthernetFrame
-from sys import exit, argv
 from os import getuid
 from time import time, sleep
+from sys import exit, argv, platform
+
+if not platform.startswith("linux"):
+    print("This script uses AF_PACKET sockets, which only work on Linux.")
+    exit(1)
 
 if getuid() != 0:
     print("This script must be run as root so it can capture traffic.")
     exit(1)
 
 if len(argv) < 3:
-    print("Usage: {} <iface> <addresses> ...", argv[0])
+    print("Usage: {} <iface> <addresses> ...".format(argv[0]))
     exit(1)
 
 # listen on iface, only attack addresses in addresses
@@ -31,6 +35,8 @@ def listen():
         socket.SOCK_RAW,
         socket.ntohs(0x0003)
     )
+
+    print("Watching for connections to interrupt. Press Ctrl-C to stop.")
 
     while True:
         try:
@@ -74,8 +80,6 @@ def attack():
     )
 
     attack_socket.bind((iface, 0))
-
-    print("Watching for connections to interrupt. Press Ctrl-C to stop.")
 
     while True:
         attack_event.wait()
