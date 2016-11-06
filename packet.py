@@ -34,8 +34,7 @@ def to_integer_le(octets, n_bits=8):
 def checksum(octets):
     if len(octets) % 2 == 1:
         octets += b"\x00"
-    # s = sum(array.array("H", octets))
-    s = sum(to_integer_le(octets[i:i+2]) for i in range(0, len(octets), 2))
+    s = sum(to_integer_le(octets[i:i + 2]) for i in range(0, len(octets), 2))
     s = (s >> 16) + (s & 0xffff)
     s += s >> 16
     s = ~s
@@ -56,8 +55,6 @@ class MACAddress:
 
 class EthernetFrame:
     def __init__(self, octets):
-        self._raw = octets
-
         self.dest_address = MACAddress(octets[0:6])
         self.source_address = MACAddress(octets[6:12])
 
@@ -90,7 +87,6 @@ class IPv4Address:
 class IPv4Packet:
     def __init__(self, octets, parent=None):
         self.parent = parent
-        self._raw = octets
 
         self.version = to_bits(octets[0], 0, 4)
 
@@ -158,7 +154,6 @@ class IPv4Packet:
 class TCPPacket:
     def __init__(self, octets, parent=None):
         self.parent = parent
-        self._raw = octets
 
         self.source_port = to_integer(octets[0:2])
         self.dest_port = to_integer(octets[2:4])
@@ -225,24 +220,45 @@ class TCPPacket:
             self.raw_header()
         )
 
-    def forge_reset(self, sequence):
+    def forge_reset(self):
         self.NS = False
         self.CWR = False
         self.ECE = False
         self.URG = False
-        self.ACK = False
         self.PSH = False
         self.RST = True
         self.SYN = False
         self.FIN = False
 
-        self.sequence = sequence
-        self.ack_number = 0
+        if self.ACK:
+            self.ACK = False
+            self.sequence = self.ack_number
+            self.ack_number = 0
+        else:
+            self.ACK = True
+            self.ack_number = self.sequence + len(self.raw())
+            self.sequence = 0
+
         self.window_size = 0
         self.urgent_pointer = 0
         self.payload = b""
 
-        self.parent.replace_checksum()
+        port = self.source_port
+        self.source_port = self.dest_port
+        self.dest_port = port
+
+        ipv4 = self.parent
+        ip = ipv4.source_address
+        ipv4.source_address = ipv4.dest_address
+        ipv4.dest_address = ip
+
+        frame = ipv4.parent
+        mac = frame.source_address
+        frame.source_address = frame.dest_address
+        frame.dest_address = mac
+
+        ipv4.length = len(ipv4.raw())
+        ipv4.replace_checksum()
         self.replace_checksum()
 
 
