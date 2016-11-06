@@ -246,7 +246,7 @@ class TCPPacket:
         self.dest_port = temp
 
         ipv4 = self.parent
-        ip = ipv4.source_address
+        temp = ipv4.source_address
         ipv4.source_address = ipv4.dest_address
         ipv4.dest_address = temp
 
