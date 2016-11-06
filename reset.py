@@ -45,8 +45,8 @@ def listen():
         ip = frame.payload
         tcp = ip.payload
 
-        # ignore reset packets
-        if tcp.RST:
+        # ignore reset and final packets
+        if tcp.RST or tcp.FIN:
             continue
 
         sender = str(ip.source_address)
