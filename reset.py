@@ -10,6 +10,12 @@ if getuid() != 0:
     print("This script must be run as root so it can capture traffic.")
     exit(1)
 
+if len(argv) < 3:
+    print("Usage: {} <iface> <addresses> ...", argv[0])
+    exit(1)
+
+iface, *addresses = argv[1:]
+
 attack_event = threading.Event()
 attack_targets = []
 attack_targets_lock = threading.Lock()
@@ -46,34 +52,12 @@ def listen():
         sender = str(ip.source_address)
         receiver = str(ip.dest_address)
 
-        if sender not in argv and receiver not in argv:
+        if sender not in addresses and receiver not in addresses:
             continue
 
         with attack_targets_lock:
             attack_targets.append(frame)
         attack_event.set()
-
-        # with connections_lock:
-
-        #     for connection in connections:
-        #         if (
-        #             not (sender == receiver) and
-        #             sender in connection["participants"] and
-        #             receiver in connection["participants"]
-        #         ):
-        #             connection["last packet"] = frame
-        #             connection["last seen"] = time()
-        #     else:
-        #         connections.append({
-        #             "participants": (
-        #                 str(sender),
-        #                 str(receiver)
-        #             ),
-        #             "last packet": frame,
-        #             "last seen": time(),
-        #             "attack": False,
-        #             "prompted": False
-        #         })
 
     listen_socket.close()
 
@@ -85,7 +69,7 @@ def attack():
         socket.ntohs(0x0003)
     )
 
-    attack_socket.bind(('enp0s8', 0))
+    attack_socket.bind((iface, 0))
 
     while True:
         attack_event.wait()
