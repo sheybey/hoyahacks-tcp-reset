@@ -21,13 +21,8 @@ attack_event = threading.Event()
 attack_targets = []
 attack_targets_lock = threading.Lock()
 
-stats = {
-    "attacks": 0,
-    "seen": []
-}
+stats = {"attacks": 0, "seen": []}
 stats_lock = threading.Lock()
-
-we_are = {"done here": False}
 
 
 def listen():
@@ -38,16 +33,10 @@ def listen():
     )
 
     while True:
-        if we_are["done here"]:
-            break
-
         try:
             frame = EthernetFrame(listen_socket.recv(65535))
         except ValueError:
             continue
-        except socket.SocketError:
-            # break
-            raise
 
         ip = frame.payload
         tcp = ip.payload
@@ -91,9 +80,6 @@ def attack():
     while True:
         attack_event.wait()
 
-        if we_are["done here"]:
-            break
-
         while attack_targets:
             with attack_targets_lock:
                 target = attack_targets.pop(0)
@@ -129,4 +115,4 @@ try:
                 stats["attacks"]
             ))
 except KeyboardInterrupt:
-    we_are["done here"] = True
+    pass
