@@ -71,6 +71,9 @@ def attack():
 
     attack_socket.bind((iface, 0))
 
+    print("Watching for connections to interrupt. Press Ctrl-C to stop.")
+
+
     while True:
         attack_event.wait()
 
