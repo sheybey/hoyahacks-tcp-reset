@@ -8,12 +8,13 @@ from sys import exit, argv, platform
 
 try:
     # for Python2
-    import Tkinter as tkinter
-    import ttk as ttk
+    from Tkinter import *
+    from Tkinter import ttk
 except ImportError:
     # for Python3
     from tkinter import *
-    import ttk as ttk
+    from tkinter import ttk
+
 
 #gui
 x=tkinter.Tk(screenName=None, baseName=None, className='Auto TCP resset attacker')
