@@ -17,7 +17,7 @@ except ImportError:
 
 
 #gui
-x=tkinter.Tk(screenName=None, baseName=None, className='Auto TCP resset attacker')
+x = Tk(screenName=None, baseName=None, className='Auto TCP resset attacker')
 
 
 if not platform.startswith("linux"):
