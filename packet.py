@@ -22,23 +22,14 @@ def to_integer(octets, n_bits=8):
     return i
 
 
-def to_integer_le(octets, n_bits=8):
-    l = 0
-    i = 0
-    for o in octets:
-        i += o << (l * n_bits)
-        l += 1
-    return i
-
-
 def checksum(octets):
     if len(octets) % 2 == 1:
         octets += b"\x00"
-    s = sum(to_integer_le(octets[i:i + 2]) for i in range(0, len(octets), 2))
+    s = sum(to_integer(octets[i:i + 2]) for i in range(0, len(octets), 2))
     s = (s >> 16) + (s & 0xffff)
     s += s >> 16
     s = ~s
-    return (((s >> 8) & 0xff) | s << 8) & 0xffff
+    return s & 0xffff
 
 
 class Address:
