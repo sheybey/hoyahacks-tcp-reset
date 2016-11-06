@@ -130,6 +130,8 @@ def button():
     return y.get()
 attack=Button(x, text="attack", command=button)
 
+attack.pack()
+
 x.mainloop()
 
 
