@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-
-
 def to_bits(octet, offset, length, n_bits=8):
     mask = (1 << length) - 1
     return (octet >> (n_bits - offset - length)) & mask
