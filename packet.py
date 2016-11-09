@@ -222,9 +222,6 @@ class TCPPacket:
             self.raw_header()
         )
 
-    def recalculate_length(self):
-        self.length = len(self.raw())
-
     def truncate_options(self):
         self.data_offset = 5
         self.options = 0
@@ -253,9 +250,8 @@ class TCPPacket:
 
         self.window_size = 0
         self.urgent_pointer = 0
-        self.truncate_options()
+        # self.truncate_options()
         self.truncate_payload()
-        self.recalculate_length()
 
         temp = self.source_port
         self.source_port = self.dest_port
