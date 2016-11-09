@@ -250,7 +250,7 @@ class TCPPacket:
 
         self.window_size = 0
         self.urgent_pointer = 0
-        # self.truncate_options()
+        self.truncate_options()
         self.truncate_payload()
 
         temp = self.source_port
