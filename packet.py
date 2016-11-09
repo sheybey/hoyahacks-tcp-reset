@@ -132,7 +132,14 @@ class IPv4Packet:
     def raw(self):
         return self.raw_header() + self.payload.raw()
 
-    def replace_checksum(self):
+    def truncate_options(self):
+        self.ihl = 5
+        self.options = 0
+
+    def recalculate_length(self):
+        self.length = len(self.raw())
+
+    def recalculate_checksum(self):
         self.checksum = 0
         self.checksum = checksum(self.raw_header())
 
@@ -208,12 +215,22 @@ class TCPPacket:
     def raw(self):
         return self.raw_header() + bytes(self.payload)
 
-    def replace_checksum(self):
+    def recalculate_checksum(self):
         self.checksum = 0
         self.checksum = checksum(
             self.parent.tcp_checksum_bytes() +
             self.raw_header()
         )
+
+    def recalculate_length(self):
+        self.length = len(self.raw())
+
+    def truncate_options(self):
+        self.data_offset = 5
+        self.options = 0
+
+    def truncate_payload(self):
+        self.payload = b""
 
     def forge_reset(self):
         self.NS = False
@@ -236,8 +253,9 @@ class TCPPacket:
 
         self.window_size = 0
         self.urgent_pointer = 0
-        self.options = 0
-        self.payload = b""
+        self.truncate_options()
+        self.truncate_payload()
+        self.recalculate_length()
 
         temp = self.source_port
         self.source_port = self.dest_port
@@ -253,9 +271,9 @@ class TCPPacket:
         frame.source_address = frame.dest_address
         frame.dest_address = temp
 
-        ipv4.length = len(ipv4.raw())
-        ipv4.replace_checksum()
-        self.replace_checksum()
+        ipv4.recalculate_length()
+        ipv4.recalculate_checksum()
+        self.recalculate_checksum()
 
 
 __all__ = ["EthernetFrame", "IPv4Packet", "TCPPacket"]
