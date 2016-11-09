@@ -236,6 +236,7 @@ class TCPPacket:
 
         self.window_size = 0
         self.urgent_pointer = 0
+        self.options = 0
         self.payload = b""
 
         temp = self.source_port
