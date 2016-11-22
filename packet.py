@@ -253,19 +253,17 @@ class TCPPacket:
         self.truncate_options()
         self.truncate_payload()
 
-        temp = self.source_port
-        self.source_port = self.dest_port
-        self.dest_port = temp
+        self.source_port, self.dest_port = self.dest_port, self.source_port
 
         ipv4 = self.parent
-        temp = ipv4.source_address
-        ipv4.source_address = ipv4.dest_address
-        ipv4.dest_address = temp
+        ipv4.source_address, ipv4.dest_address = (
+            ipv4.dest_address, ipv4.source_address
+        )
 
         frame = ipv4.parent
-        temp = frame.source_address
-        frame.source_address = frame.dest_address
-        frame.dest_address = temp
+        frame.source_address, frame.dest_address = (
+            frame.dest_address, frame.source_address
+        )
 
         ipv4.recalculate_length()
         ipv4.recalculate_checksum()
